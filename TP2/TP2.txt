@@ -1,0 +1,52 @@
+2.binome : select * from moi.mespays;
+update moi.mespays set head_of_state='Barak Obama' where upper(country_id)='USA';
+Si besoin :
+moi : grant select, update(head_of_state) on mespays to binome;
+binome : select * from moi.mespays;
+update moi.mespays set head_of_state='Barak Obama' where upper(country_id)='USA';
+
+3. moi : select * from mespays where upper(country_id)='USA';
+Le SELECT fonctionne mais la modification n'est pas visible.
+
+4. moi : update mespays set head_of_state='Bill Clinton' where upper(country_id)='USA';
+La mise à jour est bloquée, en attente...
+
+5. moi : update mespays set life_expectancy=life_expectancy+1 where upper(country_id)='USA';
+La mise à jour est également en attente.
+
+6. moi : update mespays set head_of_state='Dilma Rousseff' where upper(country_id)='BRA';
+La modification est possible, c'est la ligne en cours de modification qui est vérouillée.
+
+7. moi : commit;
+
+8. binome : commit;
+
+9. moi : select * from mespays where upper(country_id)='USA';
+
+10. moi : update mespays set head_of_state='Bill Clinton' where upper(country_id)='USA';
+
+11. moi : select country_id, life_expectancy from mespays where upper(country_id)='USA';
+Valeur 77,1
+S2 : update mespays set life_expectancy=life_expectancy+1 where upper(country_id)='USA';
+
+12. S1 : update mespays set life_expectancy=life_expectancy+2 where upper(country_id)='USA';
+
+13. S2 : commit;
+
+14. S1 : commit;
+Dans S1 et S2 : select country_id, life_expectancy from mespays where upper(country_id)='USA';
+Valeur de life_expectancy dans S1 et S2 : 80,1
+
+15. Valeur de life_expectancy dans S1 et S2 : 82,1
+
+16. S1 : LOCK TABLE mespays IN EXCLUSIVE MODE NOWAIT;
+S2 : LOCK TABLE mespays IN EXCLUSIVE MODE NOWAIT;
+-> S1 ne peut pas vérouiller la table et l'option NOWAIT lui permet de récupérer la main (avec message expliquant l'impossibilité de vérouiller) plutôt que de rester en attente.
+S2 : select country_id, life_expectancy from mespays where upper(country_id)='USA';
+-> S2 peut faire un SELECT sur la table
+S2 : update mespays set life_expectancy=life_expectancy+1 where upper(country_id)='USA';
+-> la mise à jour n'est pas possible et est mise en attente
+S1 : commit ou rollback;
+-> permet de reprendre la main
+S2 : commit ou rollback;
+-> pour valider ou annuler les modifications
