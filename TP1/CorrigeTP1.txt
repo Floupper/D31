@@ -1,0 +1,203 @@
+1.
+ALL_TAB_COLUMNS : décrit les colonnes des tables, vues, et clusters accessibles à l'utilisateur courant
+
+ALL_CONSTRAINTS : décrit les définitions des constraintes sur les tables accessibles à l'utilisateur courant
+
+ALL_CONS_COLUMNS : décrit les colonnes accessibles à l'utilisateur courant qui sont spécifiées dans des contraintes
+
+
+
+2. desc iin_countries permet d'obtenir les contraintes NOT NULL.
+Cette information est aussi disponible avec les valeurs par défaut dans la table ALL_TAB_COLUMNS (desc ALL_TAB_COLUMNS pour voir sa structure ou
+documentation pour avoir en plus la signification des colonnes).
+On peut commencer par vérifier que les résultats que l'on obtiendra concernent bien la table iin_countries qui nous intéresse et que d'autres tables de
+même nom ne viendront pas perturber le résultat (il peut y avoir plusieurs tables de nom iin_countries créées par des utilisateurs différents, au plus une
+étant désignée par iin_countries pour un utilisateur donné, les autres étant accessibles par proprietaire.countries)
+select owner, table_name from all_tables where lower(table_name)='countries';
+ou
+select owner, table_name from all_tables where table_name='COUNTRIES';
+car pour le cas particulier du catalogue système, on sait que les données sont en majuscules, donc on peut se permettre d'omettre la fonction de conversion.
+Puis
+select column_name, nullable, data_default
+from all_tab_columns where table_name='COUNTRIES';
+
+
+
+3. La table ALL_CONSTRAINTS du dictionnaire nous renseigne sur les contraintes.
+
+La colonne CONSTRAINT_TYPE peut notamment prendre les valeurs
+
+C (check)
+
+P (primary key)
+
+U (unique key)
+
+R (referential integrity)
+
+Ainsi pour les clés primaires
+
+SELECT constraint_name
+FROM all_constraints
+WHERE table_name='COUNTRIES'
+  AND constraint_type='P';
+
+nous donne le nom de la clé primaire de countries et pour connaître les colonnes composant la clé primaire (avec leur ordre dans cette clé), on interroge
+la table ALL_CONS_COLUMNS :
+
+SELECT column_name, position
+FROM all_cons_columns
+WHERE constraint_name='PK_COUNTRIES';
+
+ou en une seule fois en utilisant une jointure. S'il existe plusieurs contraintes avec ce nom, les distinguer avec la colonne OWNER.
+
+On obtient que la clé primaire de countries est country_id et celle de cities est city_id.
+
+
+
+4. Pour les contraintes de référence
+
+
+Pour rappel, les contraintes de référence sont de la forme attribut(s) de tableSource référence attribut(s) de tableCible. Il faut donc déterminer à la fois
+le(s) attribut(s) de tableSource et de tableCible.
+
+SELECT constraint_name, r_constraint_name, delete_rule
+FROM all_constraints
+WHERE table_name='COUNTRIES'
+  AND constraint_type='R';
+
+permet de connaître le nom des contraintes de références et la contrainte qui est référencée (sachant qu'on fait toujours référence à une colonne "unique",
+c'est une contrainte de type "primary key" ou "unique"). delete_rule permet de savoir ce qui se passe lorsque l'on supprime une donnée référencée (par
+exemple on delete cascade).
+Puis pour connaître la ou les colonnes qui font référence (et l'ordre de ces colonnes dans la clé) :
+
+SELECT column_name, position
+FROM all_cons_columns
+WHERE constraint_name='FK_COUNTRIES_CAPITAL';
+
+On obtient que
+country_id de cities référence country_id de countries
+et capital de countries référence city_id de cities
+ce qui nous donne des références croisées entre ces deux tables.
+
+
+
+5. Pour les contraintes applicatives
+
+SELECT constraint_name, search_condition_vc
+FROM all_constraints
+WHERE table_name='COUNTRIES'
+  AND constraint_type='C';
+
+nous permet de connaître les contraintes applicatives (check) placées sur la table countries.
+
+On obtient que continent doit être dans la liste 'Asia','Europe','North America','Africa','Oceania','Antarctica','South America'.
+
+
+
+6. Pour les contraintes unique
+
+SELECT constraint_name
+FROM all_constraints
+WHERE table_name='COUNTRIES'
+  AND constraint_type='U';
+
+nous permet de connaître les contraintes d'unicité.
+Puis pour connaître la ou les colonnes concernée(s) :
+
+SELECT column_name, position
+FROM all_cons_columns
+WHERE constraint_name='SYS_C0010253';
+
+Le nom SYS_C0010253 est dû au fait que cette contrainte n'a pas été nommée à la création de la table et a donc été nommée automatiquement par le SGBD.
+On obtient que code2 de countries est UNIQUE.
+
+
+
+7. desc languages permet d'obtenir les informations suivantes :
+
+languages(country_code : char(3), language : varchar2(30), official : char(1), percentage : number(4,1))
+
+Les mêmes informations peuvent être obtenues à partir de la table ALL_TAB_COLUMS (commande desc pour connaître sa structure) :
+
+SELECT column_name, data_type, char_length, data_scale, data_precision, nullable
+FROM all_tab_columns
+WHERE table_name='COUNTRIES';
+
+char_length : s'applique aux chaînes de caractères uniquement
+data_scale et data_precision renseignent sur les types numériques (number(precision, scale) : taille = precision chiffres dont scale après la virgule).
+
+Pour les contraintes, on utilise les commandes données précédemment, ce qui nous donne le schéma de la table languages :
+languages (country_code : char(3), language : varchar2(30), official : Val_bool, percentage : NUMBER(4,1))
+
+avec
+Domaine : Val_bool = {'T', 'F'} (défini par les contraintes applicatives)
+country_code, language et official ne peuvent être à NULL
+
+Contrainte de référence : 
+country_code de languages référence country_id de countries
+
+
+Au final on obtient le script suivant
+
+
+
+CREATE TABLE mespays (
+  country_id char(3) NOT NULL,
+  name varchar2(52) NOT NULL,
+  continent varchar2(14) NOT NULL,
+  region varchar2(26) NOT NULL,
+  surface_area number(10,2) NOT NULL,
+  independence_year number(6) default NULL,
+  population number(11) default NULL,
+  life_expectancy number(3,1) default NULL,
+  gnp number(10,2) default NULL,
+  gnp_old number(10,2) default NULL,
+  local_name varchar2(60) default NULL,
+  government_form varchar2(45) NOT NULL,
+  head_of_state varchar2(60) default NULL,
+  capital number(11) DEFAULT NULL,
+  code2 char(2) NOT NULL UNIQUE,
+  CONSTRAINT pk_mespays PRIMARY KEY (country_id),
+  CONSTRAINT ck_mespays_continent CHECK (initcap(continent) IN ('Asia','Europe','North America','Africa','Oceania','Antarctica','South America'))
+);
+
+CREATE TABLE mesvilles (
+  city_id number(11) NOT NULL,
+  name varchar2(60) NOT NULL,
+  country_id char(3) NOT NULL,
+  district varchar2(60) default NULL,
+  population number(11) default NULL,
+  CONSTRAINT pk_mesvilles PRIMARY KEY  (city_id),
+  CONSTRAINT fk_mesvilles_country_code FOREIGN KEY (country_id) REFERENCES mespays(country_id)
+) ;
+
+ALTER TABLE mespays ADD(CONSTRAINT fk_mespays_capital FOREIGN KEY (capital) REFERENCES mesvilles(city_id));
+
+CREATE TABLE meslangues (
+  country_code char(3) NOT NULL,
+  language varchar2(30) NOT NULL,
+  official char(1) NOT NULL,
+  percentage NUMBER(4,1),
+  CONSTRAINT pk_meslangues PRIMARY KEY  (country_code,language),
+  CONSTRAINT fk_meslangues_country_code FOREIGN KEY (country_code) REFERENCES mespays(country_id),
+  CONSTRAINT ck_meslangues_official CHECK (upper(official) in ('T','F'))
+);
+
+
+
+8. start D31_script_base_pays
+
+
+
+9. Pour ajouter la France et exécuter le script, il faut désactiver la contrainte de référence fk_mespays_capital puis la réactiver ensuite.
+
+ALTER TABLE mespays DISABLE CONSTRAINT fk_mespays_capital;
+
+INSERT INTO mespays VALUES ('FRA','France','Europe','Western Europe',551500.00,843,59225700,78.8,1424285.00,1392448.00,'France','Republic','Jacques Chirac',2974,'FR');
+
+
+
+10. start insert_pays
+
+ALTER TABLE mespays ENABLE CONSTRAINT fk_mespays_capital;

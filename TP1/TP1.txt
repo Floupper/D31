@@ -1,0 +1,43 @@
+La base de données des pays présente sur la base Oracle est constituée de 3 tables : iin_countries, iin_cities et iin_languages. Dans ce TP, vous allez
+recréer ces tables sur votre compte Oracle personnel. Vous les nommerez mespays, mesvilles et meslangues.
+Un début de script vous est donné (lien). Ce script donne une base pour la création des tables mespays et mesvilles (la structure, mais pas les contraintes 
+NOT NULL, les valeurs par défaut, la clé primaire, les contraintes de référence et applicatives), vous allez devoir le compléter en suivant les instructions 
+suivantes.
+
+1. Les tables ALL_TAB_COLUMNS (documentation), ALL_CONSTRAINTS (documentation) et ALL_CONS_COLUMNS  (documentation) pourront vous être utiles. Déterminez à 
+quoi sert chacune de ces tables.
+
+2. Quelles informations permet d'obtenir la commande desc iin_countries ?
+Quelles informations permet d'obtenir la requête
+select column_name, data_default
+from all_tab_columns where table_name='COUNTRIES';
+?
+Ajoutez-ces informations au script de création des tables et faites de même pour la table iin_cities.
+
+3. Déterminez par quel moyen (recherche dans une/des vue(s) du catalogue système) vous pouvez retrouver la clé primaire des tables iin_countries et iin_cities 
+et ajoutez au script les contraintes permettant de les définir. Attention, les clés primaires peuvent dans certains cas être composées et les colonnes 
+composant la clé ont alors un ordre dans cette clé.
+
+4. Déterminez par quel moyen (recherche dans une/des vue(s) du catalogue système) vous pouvez retrouver les contraintes de référence existant dans les tables
+iin_countries et iin_cities et ajoutez-les au script. Pour rappel, les contraintes de référence permettent de définir les clés étrangères (foreign key) qui
+font le lien entre les tables. Comme pour la clé primaire, ces clés étrangères peuvent dans certains cas être composées et les colonnes composant la clé ont
+alors un ordre dans cette clé. Il faut déterminer à la fois la(les) colonne(s) qui font référence et la(les) colonne(s) référencée(s) avec l'ordre.
+
+5. Déterminez par quel moyen (recherche dans une/des vue(s) du catalogue système) vous pouvez retrouver les contraintes applicatives (contraintes check qui
+permettent de préciser des conditions sur les valeurs qui peuvent être prises par une colonne) existant dans les tables iin_countries et iin_cities et
+ajoutez-les au script.
+
+6. Déterminez par quel moyen (recherche dans une/des vue(s) du catalogue système) vous pouvez retrouver les contraintes d'unicité (contraintes qui permettent
+de préciser que dans une colonne toutes les valeurs doivent être différentes) existant dans les tables iin_countries et iin_cities et ajoutez-les au script.
+
+7. Déterminez maintenant le schéma de la table meslangues (meslangues(col1 : type1, col2 : type2, ...) + clé primaire + contraintes de référence + contraintes
+applicatives + unicité + contraintes NOT NULL + DEFAULT) et ajoutez au script la commande SQL permettant de la créer.
+
+8. Lancez le script avec la commande start.
+
+9. Ajoutez la France dans la table mespays. Elle a pour code FRA et son continent est l'Europe, dans la région Western Europe. Son gouvernement est de type
+Republic (la base est en anglais). La base étant un peu ancienne, le président est Jacques Chirac. Sa capitale aura comme numéro 2974 dans la table mesvilles.
+Son code2 est FR. Elle est indépendante depuis 843. Sa surface et sa population sont respectivement de 551500.00 et 59225700. GNP (PIB) et GNP_OLD ont pour
+valeur 1424285.00 et 1392448.00. L'espérance de vie y est de 78.8.
+
+10. Exécutez ce script (lien) pour ajouter quelques données (vous devez avoir ajouté la France avant).
