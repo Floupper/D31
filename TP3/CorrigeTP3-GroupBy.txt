@@ -1,0 +1,58 @@
+Pour chaque département, numéro et montant payé en salaire.
+
+SELECT deptno, sum(sal)
+FROM emp
+GROUP BY deptno;
+
+Numéro des départements où le montant payé en salaire est le plus élevé et valeur de ce montant.
+
+SELECT deptno, sum(sal)
+FROM emp
+GROUP BY deptno
+HAVING sum(sal)=(SELECT MAX(SUM(sal))
+                               FROM emp
+                               GROUP BY deptno);
+
+Pour chaque mois de l'année 1981 où il y a eu des employés embauchés, mois en toutes lettres et nombre d'employés embauchés.
+
+SELECT to_char(hiredate, 'month'), count(*)
+FROM emp
+WHERE extract(year from hiredate) = 1981
+GROUP BY to_char(hiredate, 'month');
+
+Pour chaque responsable hiérarchique, numéro et nombre d'employés sous sa responsabilité.
+
+SELECT mgr, count(*)
+FROM emp
+GROUP BY mgr;
+
+Métier le plus représenté dans le département 20 et nombre d'employés ayant ce métier.
+
+SELECT initcap(job), count(*)
+FROM emp
+WHERE deptno=20
+GROUP BY initcap(job)
+HAVING count(*)=(SELECT max(count(*))
+                               FROM emp
+                               WHERE deptno=20
+                               GROUP BY initcap(job));
+
+Ville où il y a eu le plus d'employés embauchés en 1981, trié par ville croissante.
+
+SELECT initcap(d.loc), count(*)
+FROM emp e JOIN dept d ON e.deptno=d.deptno
+WHERE extract(year FROM hiredate)=1981
+GROUP BY initcap(d.loc)
+HAVING count(*)=(SELECT max(count(*))
+                               FROM emp e JOIN dept d ON e.deptno=d.deptno
+                               WHERE extract(year FROM hiredate)=1981
+                               GROUP BY initcap(d.loc))
+ORDER BY 1;
+
+Ville où il y a eu le moins d'employés embauchés (prendre en compte le département sans employé), trié par ville croissante.
+          SELECT initcap(d.loc), count(e.empno)
+          FROM emp e RIGHT JOIN dept d ON e.deptno=d.deptno
+          GROUP BY initcap(d.loc)
+          HAVING count(e.empno)=(SELECT min(count(e.empno))
+                                                       FROM emp e RIGHT JOIN dept d ON e.deptno=d.deptno
+                                                       GROUP BY initcap(d.loc));

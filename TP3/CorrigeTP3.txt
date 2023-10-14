@@ -1,0 +1,50 @@
+2. Aucun droit n'a été accordé à binome pour faire un select sur mespays, donc la requête échoue (erreur : table ou vue inexistante).
+
+3. GRANT select ON mespays TO binome;
+Mon binôme peut maintant exécuter la commande SELECT.
+
+
+4. Aucun droit n'a été accordé à binome pour faire un insert sur moi.mespays, donc la commande échoue (erreur : table ou vue inexistante).
+
+5. moi : GRANT insert ON mespays TO binome;
+binome : exécution de la commande insert
+moi : vérification par SELECT * FROM mespays WHERE upper(country_id)='ROM';
+Les modifications ne sont pas visibles si binome n'a pas fait de commit.
+binome : commit
+moi : vérification par SELECT * FROM mespays WHERE upper(country_id)='ROM'; -> les modifications sont visibles
+ALTER TABLE mespays ENABLE CONSTRAINT fk_mespays_capital;
+
+6. moi : GRANT update(code2) ON mespays TO binome;
+binome : UPDATE moi.mespays SET code2='RO' WHERE upper(country_id)='ROM';
+commit;
+moi : SELECT code2 FROM mespays WHERE upper(country_id)='ROM'; 
+
+7. moi : GRANT delete ON mespays TO binome;
+binome : DELETE FROM moi.mespays WHERE upper(country_id)='ROM';
+commit;
+moi : SELECT country_id FROM mespays WHERE upper(country_id)='ROM';
+
+8. moi : REVOKE select, update, delete ON mespays FROM binome; (le REVOKE ne fonctionne que sur les tables, pas des colonnes)
+binome : SELECT * FROM moi.mespays;
+Le select ne devrait plus fonctionner...
+
+9. moi : GRANT select ON mespays TO binome WITH GRANT OPTION;
+binome : GRANT select ON moi.mespays TO etudiant3;
+binome et etudiant3 peuvent faire SELECT * FROM moi.mespays;
+
+12. moi : REVOKE select ON moi.mespays FROM binome; 
+binome et etudiant3 ne peuvent plus faire SELECT * FROM moi.mespays;
+
+14. moi : GRANT select ON mesvilles TO bineme, etudiant3;
+
+15. moi : GRANT select ON meslangues TO public;
+
+17. CREATE VIEW intranet AS ( SELECT empno, ename, job FROM monemp );
+CREATE VIEW internet AS ( SELECT count(*) "Nombre d'employes", sum(sal) "Masse salariale" FROM monemp );
+
+18. GRANT select ON monemp TO etudiant_rh;
+GRANT select ON intranet TO etudiant_employe;
+GRANT select ON internet TO public;
+
+20. moi : GRANT select ON mesinfos TO etudiant_employe;
+etudiant_employe : SELECT * from moi.mesinfos;

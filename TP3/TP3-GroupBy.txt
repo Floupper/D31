@@ -1,0 +1,8 @@
+Base des employés
+1. Pour chaque département, numéro et montant payé en salaire.
+2. Numéro des départements où le montant payé en salaire est le plus élevé et valeur de ce montant.
+3. Pour chaque mois de l'année 1981 où il y a eu des employés embauchés, mois en toutes lettres et nombre d'employés embauchés.
+4. Pour chaque responsable hiérarchique, numéro et nombre d'employés sous sa responsabilité.
+5. Métier le plus représenté dans le département 20 et nombre d'employés ayant ce métier.
+6. Ville(s) où il y a eu le plus d'employés embauchés en 1981, trié par ville croissante.
+7. Plus difficile : Ville(s) où il y a eu le moins d'employés embauchés (prendre en compte le département sans employé).

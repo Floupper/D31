@@ -1,0 +1,116 @@
+Bien entendu, la sécurisation des accès aux données passe par des mots de passe sûrs.
+
+Vous pouvez changer votre mot de passe, mais attention, il va falloir vous en rappeler... (pour éviter les oublis, il n'est pas demandé de le faire dans ce cours) avec la commande
+
+ALTER USER loginoracle IDENTIFIED BY nouvmdp ;
+
+
+Mettez des guillemets autour de votre mot de passe s'il contient des caractères spéciaux :
+
+ALTER USER loginoracle IDENTIFIED BY "nouvmdp" ;
+
+Privilèges
+
+1. Regardez les privilèges systèmes qui vous ont été accordés sur votre compte avec la commande
+SELECT * FROM session_privs;
+qui donne les privilèges qui sont actuellement accessibles à l'utilisateur.
+
+J'obtiens aussi ces informations en regardant à la fois :
+
+SELECT * FROM user_sys_privs;
+
+qui me permet de connaître les privilèges qui m'ont été affectés via un grant (vous ne devriez pas en avoir). Il faut alors compléter avec ceux que j'ai via des rôles qui m'ont été affectés avec
+
+SELECT * FROM role_sys_privs;
+
+Par aileurs je peux connaître ces rôles via :
+
+SELECT * FROM user_role_privs;
+ou SELECT * FROM session_roles;
+
+et les privilèges attribués à ces rôles
+
+select role, privilege from role_sys_privs;
+
+Nous allons maintenant pratiquer les commandes pour accorder/retirer des privilèges sur les objets. Comme à la séance précédente, choisissez un binôme. Pour clarifier, dans la suite quand vous lisez ce sujet, moi correspond à votre nom d'utilisateur Oracle et binome à celui de cet étudiant.
+
+2. Demandez à votre binôme d'exécuter la requête SELECT * FROM moi.mespays (il faut préfixer par le nom de l'utilisateur qui est propriétaire de l'objet, vous donc, sinon c'est à sa table mes pays qu'il aura accès). Que se passe-t-il ?
+
+3. Accordez-lui le privilège select sur votre table mespays (GRANT droit ON nomtable TO utilisateur - si plusieurs droits à donner utiliser une liste séparée par des virgules). Demandez-lui à nouveau d'exécuter la commande SELECT * FROM moi.mespays. Que se passe-t-il ?
+
+4. Désactivez la constrainte fk_mespays_capital
+
+alter table mespays disable constraint fk_mespays_capital;
+
+Demandez à votre binôme d'ajouter une ligne à votre table en exécutant la commande 
+
+INSERT INTO moi.mespays VALUES ('ROM','Romania','Europe','Eastern Europe',238391.00,1878,22455500,69.9,38158.00,34843.00,'România','Republic','Ion Iliescu',NULL,'RK');
+
+Que se passe-t-il ?
+
+5. Donnez-lui maintenant les droits pour ajouter une ligne (insert) et demandez-lui de vérifier que l'ajout est possible pour lui.
+
+Vérifiez l'insertion. Pourquoi l'insertion ne vous apparait pas ?
+
+Demandez à votre binôme de faire le nécessaire pour que vous puissiez voir les modifications et vérifiez.
+
+Réactivez la contrainte fk_mespays_capital.
+
+6. Le code2 du pays est incorrect, il faudrait RO. Donnez à votre binôme le droit de modifier cette colonne, MAIS seulement sur cette colonne. Demandez à votre binôme de modifier le code.
+
+Vérifiez.
+
+7. Donnez lui-maintenant le droit delete pour qu'il puisse supprimer le pays qu'il a ajouté. Vérifiez.
+
+8. Retirez (en une commande) à votre binôme les droits select, update sur code2 et delete (commande REVOKE droit ON nomtable FROM utilisateur) et demandez lui de vérifier que ces droits lui ont bien été retirés.
+
+9. Redonnez lui le droit select, cette fois-ci avec le droit de le propager à un autre utilisateur. Il n'a pas besoin de vous dire qui, vous allez le trouver (question suivante).
+
+10. Recherchez à qui votre binôme a transmis le droit select sur votre table :
+
+select privilege, grantor, grantee from USER_TAB_PRIVS where lower(table_name)='mespays';
+
+Cette commande vous permet de voir les privilèges accordés sur vos objets, et par qui.
+
+11. Exécutez la commande
+
+select table_name, grantor, privilege from USER_TAB_PRIVS_RECD;
+
+pour voir les privilèges qui vous ont été accordés. 
+
+12. Retirez à nouveau le droit select à votre binôme (à lui seulement), et vérifiez que le 3e étudiant n'a plus le droit select non plus.
+
+13. Pour que votre binôme n'ait pas à taper votre login à chaque fois pour préfixer les objets, il peut se créer un synonyme pour votre table mesvilles : mesvilles_mesinitiales (pour Alexandre Dupont : mesvilles_ad) :
+
+CREATE SYNONYM mesvilles_mesinitiales FOR moi.mesvilles;
+
+Attention, ceci ne donne pas de droits sur les objets.
+
+14. Donnez maintenant le droit select sur votre table mesvilles à binôme et un autre étudiant.
+
+15. Donnez le droit select sur votre table meslangues à tout le monde (public).
+
+Maintenant vous pouvez laisser ou retirer les privilèges que vous avez accordés.
+
+Les vues
+
+16. Créez une table monemp avec la requête
+
+CREATE TABLE monemp AS SELECT * FROM iin_bigemp WHERE empno<8000;
+
+NB : la table créée n'a pas de contraintes.
+
+17. Créez les vues intranet et internet sur le même modèle que la diapo 22 du support de TD (en remplaçant poste par job, et sans utiliser de prénom).
+
+18. Désignez 3 de vos collègues respectivement comme RH, employé et non personnel de l'entreprise (public). Donnez les droits select indiqués et vérifiez que cela a fonctionné auprès de vos 3 collègues.
+
+19. Ajoutez une ligne pour votre collègue employé dans la table monemp en utilisant son login comme nom (et un empno non encore utilisé !). On va supposer que les noms d'employés sont uniques. Si la colonne est trop petite, faites un ALTER TABLE pour l'agrandir.
+
+20. Créez une vue mesinfos pour qu'il puisse voir ses informations complètes :
+
+CREATE VIEW mesinfos
+AS SELECT *
+FROM monemp
+WHERE upper(ename) = upper(user) // user = utilisateur connecté (il est codé en majuscules )
+
+Donnez-lui les droits select sur la vue et demandez-lui de faire un select * from moi.mesinfos pour vérifier. 
