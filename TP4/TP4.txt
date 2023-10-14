@@ -1,0 +1,346 @@
+Objectifs du TP :
+- observer une partie du travail de l'optimiseur
+- prendre conscience des différences de performance entre des requêtes donnant le même résultat, mais écrites différemment (sachant que les résultats seront encore différents d'un SGBD à l'autre)
+- manipuler les index et voir leurs effets
+
+
+
+Avertissement avant de commencer : les observations que vous ferez sur Oracle, le SGBD utilisé, pourront être différentes sur un autre, mais il s'agit ici de vous donner des pistes pour l'écriture de requêtes plus efficaces.
+
+
+
+Partie 1 - Observer et comprendre les choix de l'optimiseur pour l'utilisation des index et les accès aux données
+
+
+Informations sur les tables et index utilisés  :
+
+Pour ce TP, nous travaillons sur les tables iin_bigemp et iin_bigdept. Notons que iin_bigemp et iin_bigdept (ainsi que iin_bigemp2) sont obtenues par duplication des données de emp et dept. Les identifiants sont modifiés, mais ce n'est pas le cas pour toutes les données. Ainsi la colonne ename de iin_bigemp n'a que 14 valeurs et la colonne loc de iin_bigdept que 5 valeurs, ce qui leur confère une sélectivité faible.
+
+Nous avons créé des index sur les tables iin_bigemp et iin_bigdept avec les commandes suivantes (ils existent, il ne faut pas les créer, vous devez juste les utiliser - rappel : des index sur les clés primaires sont créés automatiquement) :
+
+CREATE INDEX idx_bigemp_mgr ON iin_bigemp(mgr);
+CREATE INDEX idx_bigemp_lename ON iin_bigemp(lower(ename));
+CREATE INDEX idx_bigemp_deptno ON iin_bigemp(deptno);
+CREATE INDEX idx_bigdept_deptno_lloc ON iin_bigdept(deptno, lower(loc));
+CREATE BITMAP INDEX idx_bt_bigemp_ljob on iin_bigemp(lower(job));
+
+On a crée une deuxième version de iin_bigemp, iin_bigemp2, avec cette fois-ci l'index
+CREATE INDEX idx_bigemp2_ljob on iin_bigemp2(lower(job));
+
+
+
+Rappelons que les choix de l'optimiseur sont bons si les statistiques sur lesquelles il peut les baser sont correctes. Celles-ci doivent donc être maintenues à jour (mais ce n'est pas l'objet du TP).
+
+
+
+Consignes 
+
+Sous SQL*Plus, positionnez le paramètre AUTOTRACE à TRACEONLY (SET AUTOTRACE TRACEONLY). Il est également possible de le positionner à ON, mais on voit alors le résultat de la requête ce qui est parfois très long sur les tables manipulées. Positionnez également le paramètre TIMING à ON.
+
+Les questions qui suivent visent à comprendre l'utilisation des index par l'optimiseur. Essayez de prédire ce comportement puis observez ce qui se passe effectivement dans le plan d'exécution en procédant comme suit :
+- réfléchissez à l'index qui pourrait être utilisé (et ceci en fonction des colonnes utilisées dans la requête : l'index est-il couvrant ? (=la seule lecture de l'index suffit à répondre à la requête) La condition est-elle sélective ? (=au plus 5% des lignes sont retournées)
+- lorsqu'un index de iin_bigemp et un index de iin_bigemp2 peuvent être utilisés, déterminez celui qui peut être le plus intéressant
+- déterminez les opérations d'accès aux informations
+- vérifiez l'utilisation de l'index (il est important de réfléchir à l'index qui sera utilisé avant de lancer une requête afin de forger votre compréhension des choses), le coût (notamment lorqu'un index de bigemp et un index de iin_bigemp2 peuvent être utilisés)
+- expliquez le choix fait par l'optimiseur s'il est différent de vos prévisions
+Partie de la documentation sur les opérations d'accès aux données (ne pas lire complètement, y venir ponctuellement pour affiner la compréhension) :
+https://docs.oracle.com/en/database/oracle/oracle-database/19/tgsql/optimizer-access-paths.html
+
+1.
+1.a. Exemple introductif : réfléchissez à la réponse puis cliquez sur la question pour voir cette réponse.
+
+
+
+Maintenant analysez les requêtes correspondant aux résultats suivants
+
+1.b. empno inférieurs à 100000
+1.c. empno compris entre 100000 et 200000
+1.d. empno parmi les valeurs 100000, 200000, ou 300000
+1.e. empno pairs
+1.f. ename commençant par s
+1.g. empno supérieurs à 100000 pour les employés dont ename commence par s
+1.h. empno des analyst et clerk
+2. Même chose, cette fois pour obtenir des informations sur les départements avec les caractéristiques suivantes :
+2.a. le numéro de département quand la localisation commence par un d
+2.b. le numéro et le nom de département quand la localisation commence par un d
+2.c. le numéro de département quand la localisation contient un a
+2.d. le numéro de département quand la localisation se termine par un s
+2.e. les numéros de départements supérieurs à 98
+2.f. le nom du département quand la localisation commence par un d
+2.g. la localisation et le nom du département triés par localisation
+2.h. le numéro et la localisation du département ordonnés par numéro de département puis localisation croissants
+
+Faites tous les autres tests qui permettraient d'éclairer vos questions.
+
+
+
+Partie 2 - Observer et comprendre les transformations de requêtes réalisées par l'optimiseur
+
+Tapez set timing on pour pouvoir voir le temps d'exécution.
+
+
+3. Regardez les plans d'exécution des deux requêtes suivantes
+
+SELECT e.empno, e.ename
+FROM iin_bigemp e JOIN iin_bigdept d ON e.deptno=d.deptno
+
+et
+
+SELECT e.empno, e.ename, d.dname
+FROM iin_bigemp e JOIN iin_bigdept d ON e.deptno=d.deptno;
+
+Que constatez-vous ? A votre avis pourquoi ?
+
+
+
+
+4. Que se passe-t-il maintenant si vous exécutez
+
+CREATE VIEW departement_employe
+AS SELECT e.empno AS numero, e.ename AS nom, d.dname AS departement
+FROM iin_bigemp e JOIN iin_bigdept d ON e.deptno=d.deptno;
+
+SELECT numero, nom
+FROM departement_employe;
+?
+
+
+
+5. Soit la requête
+SELECT ename, job
+FROM iin_bigemp
+WHERE deptno IN (SELECT deptno
+                 FROM iin_bigdept
+                 WHERE lower(loc)='dallas')
+Regardez son plan d'exécution. Que constatez-vous ?
+
+
+
+
+6. Ecrivez la requête équivalente avec jointure (vous pouvez vérifier que le résultat est le même en utilisant l'opérateur de différence entre les deux requêtes : requête 1 minus requête 2, puis requête 2 minus requête 1. Cela ne garantit pas l'équivalence, mais c'est déjà une bonne chose !) et constatez ce que vous obtenez au niveau du plan d'exécution proposé par l'optimiseur et des statistiques.
+7. Regardez maintenant le plan d'exécution de cette requête
+SELECT ename, job
+FROM iin_bigemp
+WHERE deptno IN (SELECT deptno
+                 FROM iin_bigdept);
+Que s'est-il passé par rapport à la requête de la question 5 ? Pourquoi ?
+
+
+
+
+Partie 3 - Observer des cas d'amélioration de performances des requêtes
+
+Les requêtes des questions 5 à 8 sont inspirées ou reprises du livre
+Optimisation des bases de données - Mise en œuvre sous Oracle. Laurent Navarro. Pearson. Juin 2010
+les commentaires du corrigé le seront en partie également.
+
+8. IN versus =. Ces requêtes donnent-elles le même résultat ? Comparez les plans d'exécution des deux requêtes suivantes. Que pouvez-vous en conclure ?﻿
+
+SELECT empno
+FROM iin_bigemp
+WHERE sal IN (SELECT sal
+              FROM iin_bigemp
+              WHERE empno=100007934);
+
+SELECT empno
+FROM iin_bigemp
+WHERE sal = (SELECT sal
+             FROM iin_bigemp
+             WHERE empno=100007934);
+
+9. COUNT(*) versus COUNT(colonne). Comparez les plans d'exécution des requêtes suivantes, que pouvez-vous en conclure ?
+
+﻿SELECT count(*) FROM iin_bigemp;
+SELECT count(*) FROM iin_bigemp2;
+SELECT count(ename) FROM iin_bigemp2;
+SELECT count(sal) FROM iin_bigemp2;
+
+10. Agrégats : HAVING versus WHERE. Vérifiez que les requêtes suivantes donnent le même résultat et comparez-les en termes de plan d'exécution et de performance. Que pouvez-vous en conclure ?
+
+SELECT noclient, nocmd, count(*)
+FROM iin_cmd
+WHERE noclient=100597
+GROUP BY noclient, nocmd;
+
+SELECT noclient, nocmd, count(*)
+FROM iin_cmd
+GROUP BY noclient, nocmd
+HAVING noclient=100597;
+
+11. Expression sous-requête. Vérifiez que les requêtes suivantes donnent le même résultat et comparez-les en termes de performance
+
+﻿SELECT  c.nocmd,datecommande, SUM(montant) "Total"
+FROM iin_cmd c JOIN iin_cmd_lignes cl ON cl.nocmd=c.nocmd
+WHERE datecommande<to_date('2004-04-18','yyyy-mm-dd')
+GROUP BY c.nocmd, datecommande;
+
+SELECT nocmd,datecommande,(SELECT SUM(montant) FROM iin_cmd_lignes WHERE nocmd=c.nocmd) "Total"
+FROM iin_cmd c
+WHERE datecommande<to_date('2004-04-18','yyyy-mm-dd');
+
+puis les mêmes requêtes en changeant le sens de l'inégalité dans la condition sur la date. Quel est l'effet de ce changement ?
+
+Que pouvez-vous en conclure ?
+
+12. Vérifiez que les requêtes suivantes donnent le même résultat et comparez-les en termes de performances
+
+SELECT deptno, dname
+FROM iin_bigdept
+WHERE deptno NOT IN (SELECT deptno
+                     FROM iin_bigemp
+                     WHERE lower(job)='analyst');
+
+SELECT deptno, dname
+FROM iin_bigdept d
+WHERE NOT EXISTS (SELECT *
+                  FROM iin_bigemp e
+                  WHERE lower(job)='analyst'
+                    AND e.deptno=d.deptno);
+
+SELECT distinct d.deptno, d.dname
+FROM iin_bigdept d LEFT JOIN iin_bigemp e ON e.deptno=d.deptno
+ AND lower(e.job)='analyst'
+WHERE e.deptno IS NULL;
+
+13. Comparez en termes de performances sur bigemp et bigemp2
+
+SELECT DISTINCT lower(job)
+FROM iin_bigemp
+WHERE lower(job) NOT IN (SELECT lower(job)
+                         FROM iin_bigemp
+                         WHERE deptno NOT IN (SELECT deptno
+                                              FROM iin_bigdept));
+
+SELECT DISTINCT lower(e1.job)
+FROM iin_bigemp e1
+WHERE NOT EXISTS (SELECT *
+                  FROM iin_bigdept d
+                  WHERE NOT EXISTS (SELECT *
+                                    FROM iin_bigemp e2
+                                    WHERE lower(e2.job)=lower(e1.job)
+                                      AND d.deptno=e2.deptno));
+
+SELECT lower(job)
+FROM iin_bigemp
+GROUP BY lower(job)
+HAVING COUNT(DISTINCT deptno)=(SELECT count(*)
+                               FROM iin_bigdept);
+
+
+14. Exécutez la requête suivante. Notez le numéro du plan d'exécution et le temps d'exécution
+select nom
+from iin_clients
+where noclient in (select noclient
+                   from iin_cmd
+                   where nocmd in (select nocmd
+                                   from iin_cmd_lignes
+                                   where nolivre in (select nolivre
+                                                     from iin_livres
+                                                     where lower(editeur)='pearson')));
+
+Cette requête a déjà été exécutée auparavant avec le numéro de plan d'exécution 3306841692 et le temps 00 :00 :00.98. Compte tenu de ce que vous avez observé, que pouvez-vous conclure ?
+
+
+
+
+15.
+Essayez maintenant les requêtes
+select nom
+from iin_clients
+where noclient in (select noclient
+                   from iin_cmd
+                   where nocmd in (select nocmd
+                                   from iin_cmd_lignes
+                                   where nolivre in (select nolivre
+                                                     from iin_livres
+                                                     where lower(editeur)='pearson')));
+
+et
+
+select ville
+from iin_clients
+where noclient in (select noclient
+                   from iin_cmd
+                   where nocmd in (select nocmd
+                                   from iin_cmd_lignes
+                                   where nolivre in (select nolivre
+                                                     from iin_livres
+                                                     where lower(editeur)='hachette')));
+
+et
+
+select ville
+from iin_clients
+where noclient in (select noclient
+                   from iin_cmd
+                   where nocmd in (select nocmd
+                                   from iin_cmd_lignes
+                                   where nolivre in (select nolivre
+                                                     from iin_livres
+                                                     where editeur='Hachette')));
+
+et
+
+select ville
+from iin_clients
+where noclient in (select noclient
+                   from iin_cmd
+                   where nocmd in (select nocmd
+                                   from iin_cmd_lignes
+                                   where nolivre in (select nolivre
+                                                     from iin_cmd_lignes
+                                                     where nocmd=18939)));
+
+
+
+
+16. Pour savoir à quoi ressemble un index, vous pouvez exécuter une requête qui vous affiche les lignes dans l'ordre de cet index (ici les 100 premières lignes) :
+
+SELECT <liste colonnes de l'index>
+FROM <table>
+ORDER BY <liste colonnes de l'index>
+FETCH FIRST 100 ROWS ONLY;
+
+Vous pouvez par exemple le faire sur l'index idx_bigdept_deptno_lloc avec la requête 
+
+SELECT deptno, lower(loc)
+FROM iin_bigdept
+ORDER BY deptno, lower(loc)
+FETCH FIRST 100 ROWS ONLY;
+
+17. Pour tester l'effet des index, on peut utiliser les "hints" qui permettent d'influencer le comportement de l'optimiseur en le forçant dans ses choix, comme utiliser ou pas un index donné. Pour plus de renseignements sur les hints :
+
+http://docs.oracle.com/database/121/TGSQL/tgsql_influence.htm#TGSQL260
+et http://docs.oracle.com/database/121/SQLRF/sql_elements006.htm#SQLRF51107
+
+Attention, les hints sont à utiliser avec précaution, en général votre optimiseur fait le bon choix.
+
+Par exemple, on peut dire à l'optimiseur d'utiliser un index (Attention à ne pas mettre d'espace entre * et +) :
+SELECT /*+ INDEX(bigemp pk_bigemp) */ empno
+FROM iin_bigemp
+WHERE empno = 100000;
+
+ou de ne pas utiliser un index :
+
+SELECT /*+ NO_INDEX(bigemp pk_bigemp) */ empno
+FROM iin_bigemp
+WHERE empno = 100000;
+
+Regardez le plan d'exécution produit par ces deux requêtes pour vérifier que la deuxième n'utilise effectivement pas la clé primaire.
+
+
+Information supplémentaire :
+
+ Vous verrez parfois apparaître dans le plan d'exécution la note "this is an adaptive plan". Les plans adaptatifs permettent d'adapter le plan d'exécution en cours d'exécution en fonction des statistiques obtenues, par exemple le choix d'un algorithme de jointure en fonction de la cardinalité des ensembles de données. Pour plus d'informations https://oracle-base.com/articles/12c/adaptive-plans-12cr1
+
+
+
+Requêtes
+
+Ecrire les requêtes permettant d'obtenir les résultats suivants :
+
+Nombre de comédies sorties par années
+Noms des acteurs qui ne jouent jamais dans des comédies.
+Films avec le plus de rôles.
+Films qui n'ont que des comédiens ayant tourné moins de 4 films.
+Genre dans lequel il y a le plus de films.
