@@ -48,6 +48,40 @@ https://docs.oracle.com/en/database/oracle/oracle-database/19/tgsql/optimizer-ac
 
 1.
 1.a. Exemple introductif : réfléchissez à la réponse puis cliquez sur la question pour voir cette réponse.
+  - Quand dit-on qu'un index est couvrant pour une requête ?
+    Lorsque cet index contient toutes les colonnes utilisées dans la requête, et la seule lecture de l'index est donc suffisante pour obtenir le résultat.
+  - Qu'appelle-t-on sélectivité et quelle est son influence sur la notion d'index ?
+    La sélectivité d'une colonne est le ratio entre le nombre de valeurs distinctes de cette colonne et le nombre de lignes de la table. Elle est à 1 pour une clé primaire. Il est plus intéressant de mettre des index sur une colonne à forte sélectivité.
+    Par ailleurs, on parle également de la sélectivité d'une opération dans une requête ou plus largement d'une requête. Plus une opération est sélective, plus elle réduit le nombre de lignes et sera faite au plus tôt. Une opération très sélective est par exemple du type clé_primaire=valeur. Une sélectivité importante peut permettre l'utilisation d'un index.
+  - Quelle requête permet d'obtenir les numéros d'employés supérieurs à 100000 ?
+    SELECT empno
+    FROM bigemp
+    WHERE empno>100000;
+  - Existe-t-il un index sur la ou les colonnes utilisées dans la requête ?
+    empno est clé primaire de la table bigemp, donc sous Oracle il y a un index créé automatiquement sur cette colonne. Il n'y a pas d'autre colonne utilisée, c'est le seul index utilisable.
+  - Cet index est-il couvrant ?
+    Oui, l'index est couvrant pour la requête, empno étant la seule colonne utilisée dans la requête, donc parcourir l'index uniquement est la solution la plus efficace et il va être utilisé.
+  - Quelle opération d'accès à l'information sera utilisée : Full Table Scan, Index Scan/Table Access by Rowid ou Index Scan ?
+    Index Scan puisque l'accès à l'index seul est suffisant.
+  - Quelle opération d'accès à l'index sera utilisée : Unique scan, Range scan, Full scan, Fast full scan ou Unique index ?
+    Si on regarde les statistiques sur la colonne empno
+    select max(empno) from bigemp; -> 100007934
+    et select count(*) from bigemp; -> 1400014
+    on se rend compte que la condition empno>100000 sera très peu sélective, le plus efficace sera probablement un parcours non ordonné (fast full scan).
+  - Vérifiez ces hypothèses en observant le plan d'exécution proposé par l'optimiseur. Si elles ne sont pas correctes, proposez une explication.
+    Le plan choisi par l'optimiseur correspond.
+
+    ----------------------------------------------------------------------------------
+    | Id  | Operation         | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+    ----------------------------------------------------------------------------------
+    |   0 | SELECT STATEMENT     |         |  1398K|  8195K|  1415   (1)| 00:00:01 |
+    |*  1 |  INDEX FAST FULL SCAN| PK_BIGEMP |  1398K|  8195K|  1415   (1)| 00:00:01 |
+    ----------------------------------------------------------------------------------
+
+    Predicate Information (identified by operation id):
+    ---------------------------------------------------
+
+    1 - filter("EMPNO">100000)
 
 
 
