@@ -1,0 +1,60 @@
+1. Exécutez ce script qui crée la base employés telle que vue en 1ère année. Faites un commit à la fin.
+
+Conservez le texte des sous-programmes stockés que vous allez créer car vous devrez ensuite les mettre dans un package.
+
+Utilisez
+- l'entête CREATE OR REPLACE
+- les types dérivés autant que possible (quand c'est pertinent)
+- des conventions de nommage. Pour ce cours, nous utiliserons des conventions couramment adoptées (celles de Steven Feuerstein http://stevenfeuersteinonplsql.blogspot.com/2016/10/naming-conventions-for-oracle-database.html), mais il n'y a pas de normes :
+     * variables définies dans un bloc préfixées par l_
+     * paramètres des sous-programmes suffixés par _i (paramètre IN), _o (OUT) ou _io (IN OUT)
+     * curseurs explicites suffixées par _cur (et éventuellement préfixées par la portée : l_ pour local, g_ pour global)
+     * exceptions préfixées par e_
+
+N'oubliez pas
+- le /
+- le paramètre serveroutput pour voir les affichages (set serveroutput on)
+- SHOW ERRORS pour avoir des explications sur les erreurs de compilation d'un sous-programme stocké
+- la FAQ PL/SQL dans la section Informations générales qui répond aux questions les plus souvent posées.
+
+Vous pouvez utiliser la convention de nommage qui consiste à préfixer les noms de variable par v_ afin de les distinguer des noms de colonnes des tables.
+
+Remarque : vous pourrez retrouver les procédures que vous avez créées dans la vue système  USER_PROCEDURES.
+
+2. Ecrivez une procédure stockée augmentMontant(employe, montant) qui permet d'augmenter l'employé de montant.
+
+3. Utilisez cette procédure stockée pour augmenter un employé de 100 et vérifiez. La mise à jour est-elle validée automatiquement dans une procédure stockée ?
+
+4. Demandez à un autre étudiant d'exécuter votre procédure stockée. Que se passe-t-il ?
+
+5. Donnez-lui le droit execute sur cette procédure stockée et vérifiez. Testez ce qui se passe quand la procédure stockée est définie avec AUTHID CURRENT_USER ou DEFINER.
+
+6. Ecrivez une procédure stockée afficheSalEmp(employe) qui permet d'afficher à l'écran le salaire d'un employé. Testez. 
+
+7. Ecrivez une procédure stockée annuaire qui affiche tous les employés : nom, fonction et département. Testez.
+
+Rappel : les paramètres d'une procédure peuvent avoir un mode
+
+- IN : paramètre en entrée (valeur par défaut)
+- OUT : paramètre en sortie 
+- IN OUT : paramètre en entre/sortie 
+
+8. Ecrivez une procédure stockée augmentPourcent(employe, pourcent, nouvSal) qui permet d'augmenter l'employé de pourcent% et affecte au dernier paramètre la nouvelle valeur. Syntaxe : nomparam mode type.
+
+9. Utilisez cette procédure stockée pour augmenter un employé de 5% et vérifiez.
+
+10. Ecrivez une fonction stockée revenuAnnuel(employe) qui retourne le revenu annuel de l'employé.
+
+11. Utilisez cette fonction stockée pour connaître le revenu annuel d'un des employés.
+
+12. Ecrivez une fonction stockée revenuAnnuelPromoAnc(employe) qui retourne le revenu annuel de l'employé, en lui ajoutant un 13e mois égal au salaire quand son ancienneté est inférieure à 10 ans, égal au 13e mois augmenté d'un pourcentage égal à son ancienneté quand celle-ci est supérieure ou égale à 10 ans. Testez.
+
+13. Mettez ces sous-programmes dans un package GestionFinanciere.
+
+14. Testez l'exécution d'une procédure stockée de ce package.
+
+15. Donnez à un autre étudiant le droit d'exécuter le package et vérifiez qu'il peut exécuter une procédure.
+
+16. Créez la table mes_augmentations(empno : number(5), date_aug : date, montant_aug : number(6,2)) qui permettra de garder un historique des augmentations.
+
+17. Ecrivez un déclencheur qui permet de d'alimenter la table mes_augmentations en cas d'augmentation d'un employé.
