@@ -91,3 +91,53 @@ BEGIN
     END IF;
 END;
 /
+
+-- Question 12
+CREATE FUNCTION revenuAnnuelPromoAnc(employe IN emp.empno%TYPE) RETURNS DECIMAL(10, 2)
+IS 
+BEGIN
+    DECLARE salaire DECIMAL(8, 2);
+    DECLARE exp DECIMAL(8, 2);
+
+    SELECT sal INTO salaire FROM emp WHERE empno = employe;
+    SELECT (extract(year from SYSDATE) - extract(year from hiredate)) INTO exp FROM emp WHERE empno = employe;
+
+    IF exp < 10 THEN
+        RETURN salaire * 12 + salaire;
+    ELSE
+        RETURN salaire * 12 * (1 + exp / 100);
+    END IF;
+END;
+/
+
+-- Question 13
+CREATE OR REPLACE PACKAGE GestionFinanciere AS
+    PROCEDURE augmentMontant(employe IN emp.empno%TYPE, montant IN emp.sal%TYPE) RETURN DECIMAL(10, 2);
+    PROCEDURE afficheSalEmp(employe IN emp.empno%TYPE) RETURN DECIMAL(10, 2);
+    PROCEDURE annuaire RETURN VARCHAR2;
+    PROCEDURE augmentPourcent(employe IN emp.empno%TYPE, pourcent IN DECIMAL(5,2), nouvSal IN emp.sal%TYPE) RETURN DECIMAL(10, 2);
+    FUNCTION revenuAnnuel(employe IN emp.empno%TYPE) RETURN DECIMAL(10, 2);
+    FUNCTION revenuAnnuelPromoAnc(employe IN emp.empno%TYPE) RETURN DECIMAL(10, 2);
+END GestionFinanciere;
+/
+
+-- Question 16
+CREATE TABLE mes_augmentations(
+    empno NUMBER(5) NOT NULL,
+    date_aug DATE NOT NULL,
+    montant_aug NUMBER(6, 2) NOT NULL
+);
+
+-- Question 17
+CREATE TRIGGER updateAugmentations
+AFTER UPDATE ON emp
+FOR EACH ROW
+BEGIN
+    -- Vérifier si l'employé a reçu une augmentation
+    IF NEW.sal > OLD.sal THEN
+        -- Insérer l'information dans la table mes_augmentations
+        INSERT INTO mes_augmentations (empno, pourcentage, nouveau_salaire, date_augmentation)
+        VALUES (NEW.empno, ((NEW.sal - OLD.sal) / OLD.sal) * 100, NEW.sal, NOW());
+    END IF;
+END:
+/
