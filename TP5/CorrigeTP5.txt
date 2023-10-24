@@ -1,0 +1,52 @@
+2.
+CREATE OR REPLACE PROCEDURE augmentMontant(employe emp.empno%TYPE, montant emp.sal%TYPE) AS
+BEGIN
+   UPDATE emp
+   SET sal = sal + montant
+   WHERE empno=employe;
+END augmentMontant;
+/
+
+3.
+execute augmentMontant(7698, 100);
+Une mise à jour dans une procédure stockée n'est pas validée automatiquement.
+
+4.
+A moins d'avoir accordé le droit execute sur la procédure stockée à un utilisateur, celui-ci ne peut pas l'exécuter.
+
+5.
+GRANT execute ON augmentMontant TO binome;
+binome : execute moi.augmentMontant(7698, 100)
+
+CREATE OR REPLACE PROCEDURE augmentMontant(employe emp.empno%TYPE, montant emp.sal%TYPE) AUTHID CURRENT_USER AS
+BEGIN
+   UPDATE emp
+   SET sal = sal + montant
+   WHERE empno=employe;
+END augmentMontant;
+/
+
+C'est la table de l'utilisateur qui exécute la procédure stockée qui est modifiée. Cela implique qu'il ait effectivement une table emp, sinon il y a un erreur.
+
+CREATE OR REPLACE PROCEDURE augmentMontant(employe emp.empno%TYPE, montant emp.sal%TYPE) AUTHID DEFINER AS
+BEGIN
+   UPDATE emp
+   SET sal = sal + montant
+   WHERE empno=employe;
+END augmentMontant;
+/
+
+DEFINED_USER est la valeur par défaut, on obtient le comportement initial, sans définir AUTHID. C'est la table emp de l'utilisateur qui a défini la procédure qui est modifiée.
+
+
+6.
+CREATE OR REPLACE PROCEDURE afficheSalEmp(employe emp.empno%TYPE) AS
+   salaire emp.sal%TYPE;
+BEGIN
+   SELECT sal INTO salaire FROM emp WHERE empno=employe;
+   DBMS_OUTPUT.PUT_LINE('Salaire de l''employé '||employe||' : '||salaire);
+END afficheSalEmp;
+/
+
+set serveroutput on
+execute afficheSalEmp(7698)
