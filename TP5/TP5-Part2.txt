@@ -1,0 +1,92 @@
+Déclencheurs de lignes
+
+Ces déclencheurs concernent des instructions de mise à jour et sont exécutés pour chacune des lignes modifiées. On utilise alors FOR EACH ROW.
+
+1. Les triggers entraînent-ils une validation automatique ?
+
+2. Ecrire un trigger TrigSupEmp qui se déclenche après la suppression d'un employé. Le trigger affiche alors le message "Employé numéro empno supprimé". Si cet employé est responsable hiérarchique d'autres employés, les employés concernés se retrouvent sans responsable et un message affiche leurs numéros.
+Est-ce que :NEW est défini après une suppression ?
+Testez.
+Que se passe-t-il ? Modifiez le trigger pour le faire fonctionner au moins en partie.
+
+3. Ecrire un trigger TrigQuotaSub qui se déclenche en cas d'insertion d'un nouvel employé et affectation comme  subordonné à un responsable hiérarchique, et qui affiche un message d'alerte si le responsable encadre plus de 4 employés.
+Testez.
+
+4. Désactivez ce trigger : ALTER TRIGGER TrigQuotaSub DISABLE
+Testez puis réactivez le.
+
+
+
+Déclencheurs de table
+
+Ils sont exécutés une seule fois lorsque des modifications interviennent dans une table.
+
+5. Créez une table log(table, date, username, action) qui permet de stocker les différentes instructions de mise à jour réalisées sur une table (une ligne par instruction, pas par ligne modifiée dans la table cible). Table est la table cible, date la date d'exécution de l'instruction, username le login de la personne ayant exécuté la commande, action, le type de commande exécuté.
+
+6. Ecrire un trigger TrigAlimLog qui remplit la table log pour les commandes insert, update et delete sur la table emp.
+Pour obtenir le nom d'utilisateur, utilisez SYS_CONTEXT('USERENV', 'SESSION_USER').
+NB : un trigger peut se lancer sur plusieurs commandes différentes, il faut les séparer par OR dans l'entête.
+
+Il existe également des déclencheurs liés à des commandes du LDD (ALTER, CREATE, DROP, GRANT, RENAME, REVOKE, ...)
+Finalement il existe également des déclencheurs sur des événements liés à l'instance de la base elle-même (connexion/déconnexion d'un utilisateur, arrêt, ...) que nous ne verrons pas.
+
+
+
+Exceptions
+
+7. Modifiez la procédure augmentMontant du premier TP, et ajoutez une gestion des exceptions pour le cas où le numéro d'employé n'existerait pas. Vous pouvez utiliser le curseur implicite SQL%NOTFOUND et définir une exception.
+
+
+
+Alternative au déclencheur
+
+8. Proposez une solution PL/SQL qui permette de mettre en place la question 2 (sans forcément utiliser de trigger).
+
+
+
+Curseurs paramétrés
+
+Les curseurs paramétrés sont des curseurs auxquels on passe un paramètre (dont la valeur ne sera fixée qu'à l'ouverture). Ils se déclarent ainsi :
+CURSOR moncurseur(param table.champ3%TYPE) IS
+SELECT champ1,champ2 FROM table
+WHERE champ3 = param;
+
+On les ouvre en précisant une valeur pour le paramètre :
+OPEN moncurseur(valeur);
+
+On les ferme sans repréciser la valeur :
+CLOSE moncurseur;
+
+Ils permettent d'ouvrir plusieurs curseurs avec un paramètre différent à chaque fois.
+
+9. Utilisez les curseurs paramétrés pour écrire une procédure stockée qui, pour chaque employé ayant des subordonnés, affiche les numéros et jobs de ses subordonnés directs, suivis du nombre de ces subordonnés. Utilisez les attributs des curseurs, notamment pour afficher le nombre de subordonnés.
+
+Exemple de résultat :
+Subordonnés de l'employé numéro 7839 :
+Employé 7698 : MANAGER
+Employé 7782 : MANAGER
+Employé 7566 : MANAGER
+3 subordonné(s)
+Subordonnés de l'employé numéro 7782 :
+Employé 7934 : CLERK
+1 subordonné(s)
+
+
+Autres exercices
+
+10.
+a. Ecrire une fonction qui retourne le coût pour l'entreprise du salaire des employés (on mettra les charges à 82%).
+b. Même question que la précédente mais pour un emploi donné (passé en paramètre). Exemple : le coût des analystes.
+
+11. Ecrire une procédure stockée syntheseCoutSalaires qui affiche le coût des salaires pour l'entreprise puis le détail par emploi.
+
+Exemple de résultat :
+Coût salaires : 58285,5
+Coût salaires SALESMAN : 10192
+Coût salaires CLERK : 7553
+Coût salaires PRESIDENT : 9100
+Coût salaires MANAGER : 15060,5
+Coût salaires ANALYST : 10920
+
+
+12. Ecrire une procédure stockée qui, pour l'employé passé en paramètre affiche son nombre de subordonnés (directs) et les numéros et jobs de ces subordonnés. S'il n'a pas de subordonnés, la procédure affiche 'L'employé numéro numeroEmploye n'a pas de subordonné'.
